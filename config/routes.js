@@ -1,7 +1,8 @@
 const axios = require("axios");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-const { authenticate } = require("./middlewares");
+const { authenticate, generateToken } = require("./middlewares");
 
 const db = require("../database/dbConfig");
 
@@ -28,14 +29,27 @@ function register(req, res) {
 }
 
 function login(req, res) {
-  // implement user login
+  const creds = req.body;
+
+  db("users")
+    .where({ username: creds.username })
+    .first()
+    .then(user => {
+      if (user && bcrypt.compareSync(creds.password, user.password)) {
+        const token = generateToken(user);
+        res.status(200).json({ message: "Welcome!", token });
+      } else {
+        res.status(401).json({ message: "You shall not pass!!" });
+      }
+    })
+    .catch(err => {
+      res.status(500).json({ err: "There was an error, please try again." });
+    });
 }
 
 function getJokes(req, res) {
   axios
-    .get(
-      "https://08ad1pao69.execute-api.us-east-1.amazonaws.com/dev/random_ten"
-    )
+    .get("https://safe-falls-22549.herokuapp.com/random_ten")
     .then(response => {
       res.status(200).json(response.data);
     })
